@@ -1,24 +1,26 @@
-// const Promise = require('./promise.js');
+const Promise = require('./promise.js');
 
-const v = { sentinel: "sentinel" }
-
-function xFactory() {
-  return {
-    then: function (resolvePromise) {
-      resolvePromise(yFactory());
-    },
-  };
-}
-
-function yFactory() {
-  return {
-    then: function (onFulfilled) {
-      onFulfilled(v);
-    },
-  };
-}
-
-
-Promise.resolve(111).then(() => xFactory()).then(d => {
-  console.log(v === d)
-})
+Promise.resolve({ dummy: 'dummy' })
+  .then(function onBasePromiseFulfilled() {
+    // x
+    return {
+      then: function (resolvePromise) {
+        setTimeout(() => {
+          resolvePromise(
+            // y
+            Object.create(null, {
+              then: {
+                get: function () {
+                  throw 111;
+                },
+              },
+            })
+          );
+        }, 0);
+      },
+    };
+  })
+  .then(
+    (v) => console.log('value: ', v),
+    (e) => console.log('error: ', e)
+  );
