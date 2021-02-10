@@ -1,3 +1,5 @@
+function noop() {}
+
 function _thenable(proto) {
   try {
     if ('then' in proto) return true;
@@ -58,18 +60,18 @@ function MyPromise(executor) {
 }
 
 MyPromise.prototype.then = function (onfulfilled, onrejected) {
-  if (typeof onfulfilled !== 'function') onfulfilled = function () {};
-  if (typeof onrejected !== 'function') onrejected = function () {};
+  if (typeof onfulfilled !== 'function') onfulfilled = noop;
+  if (typeof onrejected !== 'function') onrejected = noop;
 
   if (this.status === 'pending') {
     const next = new MyPromise((resolve, reject) => {
       this._resolveCbs.push((result) => {
         try {
+          if (onfulfilled === noop) return resolve(result);
           const value = onfulfilled(result);
           if (value === next) reject(new TypeError());
           else if (_thenable(value)) value.then(resolve, reject);
-          else if (value) resolve(value);
-          else resolve(result);
+          else resolve(value);
         } catch (error) {
           reject(error);
         }
@@ -91,11 +93,17 @@ MyPromise.prototype.then = function (onfulfilled, onrejected) {
     const next = new MyPromise((resolve, reject) => {
       setTimeout(() => {
         try {
+          if (onfulfilled === noop) return resolve(this.result);
           const value = onfulfilled(this.result);
           if (value === next) reject(new TypeError());
-          else if (_thenable(value)) value.then(resolve, reject);
-          else if (value) resolve(value);
-          else resolve(this.result);
+          else if (_thenable(value)) {
+            try {
+              value.then(resolve, reject);
+            } catch (err) {
+              if (typeof value.then !== 'function') return resolve(value);
+              throw err;
+            }
+          } else resolve(value);
         } catch (error) {
           reject(error);
         }
@@ -108,8 +116,14 @@ MyPromise.prototype.then = function (onfulfilled, onrejected) {
         try {
           const reason = onrejected(this.result);
           if (reason === next) reject(new TypeError());
-          else if (_thenable(reason)) reason.then(resolve, reject);
-          else if (reason) resolve(reason);
+          else if (_thenable(reason)) {
+            try {
+              reason.then(resolve, reject);
+            } catch (err) {
+              if (typeof reason.then !== 'function') return resolve(reason);
+              throw err;
+            }
+          } else if (reason) resolve(reason);
           else reject(this.result);
         } catch (error) {
           reject(error);
