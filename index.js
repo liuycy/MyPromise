@@ -1,7 +1,7 @@
-const Promise = require('./promise.js');
+// const Promise = require('./promise.js');
 
 Promise.resolve({ dummy: 'dummy' })
-  .then(function onBasePromiseFulfilled() {
+  .then(null, function onBasePromiseFulfilled() {
 
 
   })

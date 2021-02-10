@@ -78,11 +78,11 @@ MyPromise.prototype.then = function (onfulfilled, onrejected) {
       });
       this._rejectCbs.push((result) => {
         try {
+          if (onrejected === noop) return reject(result);
           const reason = onrejected(result);
           if (reason === next) reject(new TypeError());
           else if (_thenable(reason)) reason.then(resolve, reject);
-          else if (reason) resolve(reason);
-          else reject(result);
+          else resolve(reason);
         } catch (error) {
           reject(error);
         }
@@ -114,6 +114,7 @@ MyPromise.prototype.then = function (onfulfilled, onrejected) {
     const next = new MyPromise((resolve, reject) => {
       setTimeout(() => {
         try {
+          if (onrejected === noop) return reject(this.result);
           const reason = onrejected(this.result);
           if (reason === next) reject(new TypeError());
           else if (_thenable(reason)) {
@@ -123,8 +124,7 @@ MyPromise.prototype.then = function (onfulfilled, onrejected) {
               if (typeof reason.then !== 'function') return resolve(reason);
               throw err;
             }
-          } else if (reason) resolve(reason);
-          else reject(this.result);
+          } else resolve(reason);
         } catch (error) {
           reject(error);
         }
